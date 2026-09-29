@@ -24,7 +24,7 @@ flowchart LR
 - **Log Analytics workspace** with 30-day retention and a 0.5 GB daily cap, so a forgotten lab can't run up a bill.
 - **Microsoft Sentinel** switched on over that workspace.
 - **A diagnostic setting** that streams the subscription's Activity Log (admin, security and policy events) into the workspace.
-- **Three scheduled analytics rules**, each with its KQL kept in its own file under `rules/`.
+- **Three scheduled analytics rules**, deployed through one reusable module, each with its KQL kept in its own file under `rules/`.
 - **A Key Vault** that exists purely as something to attack for rule 3.
 - **Remote state** in Azure Blob Storage, accessed with Entra ID rather than storage keys.
 
@@ -37,6 +37,24 @@ flowchart LR
 | Key Vault permission change | High | Changes to a vault made by anyone other than the Terraform identity, plus RBAC grants scoped to a vault | Credential Access / Persistence, T1098 |
 
 Each rule runs every 15 minutes, looks back 30 minutes, and only counts events that arrived in the last 15. The reasons for that are below.
+
+### Adding a detection
+
+The rules all go through one module in `modules/detection-rule`, so a new detection is two small changes rather than another copy-pasted block.
+
+1. Write the query and test it in Logs, then save it as `rules/<rule_key>.kql`.
+2. Add an entry to the map in `detections.tf` with the same key:
+
+```hcl
+my_new_rule = {
+  display_name = "What the analyst sees"
+  description  = "What it catches and why. MITRE ATT&CK: ..."
+  severity     = "Medium"
+  tactics      = ["Persistence"]
+}
+```
+
+Run `terraform plan` and it should show one rule to add. The module checks the severity is valid before anything reaches Azure, and the key becomes the rule ID (underscores swapped for hyphens).
 
 ## What testing taught me
 
@@ -153,6 +171,8 @@ SecurityIncident
 terraform destroy
 ```
 
+One thing that caught me out: Sentinel reserves a deleted rule's ID for a while. If you destroy and immediately apply again, the rules fail with a 409 "recently deleted" error while everything else builds. Wait a bit and run `terraform apply` again, and Terraform creates only what's missing.
+
 ## Cost
 
 At lab volumes this costs pennies a day. The workspace has a 0.5 GB daily ingestion cap, logs are kept for the free 30 days, and I destroy everything at the end of each session. A budget alert on the subscription is a sensible extra safety net.
@@ -160,7 +180,6 @@ At lab volumes this costs pennies a day. The workspace has a 0.5 GB daily ingest
 ## Limitations
 
 - **The Terraform identity is hard-coded in rule 3** as an allow-list. In a real environment that list would live in a Sentinel watchlist so it can change without editing the rule.
-- **The three rule blocks are near-identical.** The next step is a module that loops over a map of rules, so adding a rule means one new entry and one `.kql` file.
 - **Activity Log only.** There's no sign-in data, Defender telemetry or Key Vault data-plane logging (who actually read a secret). That's where I'd go next.
 - **No automated response.** Incidents are raised, but nothing acts on them yet. A Logic App playbook would be the natural follow-on.
 
@@ -172,9 +191,11 @@ At lab volumes this costs pennies a day. The workspace has a 0.5 GB daily ingest
 ├── variables.tf        Inputs (subscription, name prefix)
 ├── main.tf             Resource group, workspace, Sentinel, Activity Log stream
 ├── keyvault.tf         Key Vault used as a test target
-├── detections.tf       The three analytics rules
+├── detections.tf       Map of rules, fed into the module with for_each
 ├── outputs.tf
-├── rules/              One KQL file per detection
+├── modules/
+│   └── detection-rule/ One scheduled analytics rule, with input validation
+├── rules/              One KQL file per detection, named after its map key
 └── docs/images/        Screenshots
 ```
 
