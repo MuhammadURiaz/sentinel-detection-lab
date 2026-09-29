@@ -13,3 +13,19 @@ resource "azurerm_sentinel_alert_rule_scheduled" "rg_deleted" {
     aggregation_method = "SingleAlert"
   }
 }
+
+resource "azurerm_sentinel_alert_rule_scheduled" "role_assignment_sub" {
+  name                       = "role-assignment-sub"
+  log_analytics_workspace_id = azurerm_sentinel_log_analytics_workspace_onboarding.sentinel.workspace_id
+  display_name               = "Role assignment created at subscription scope"
+  description                = "Alerts when an RBAC role is assigned at subscription scope. MITRE ATT&CK: Privilege Escalation / Persistence (T1098 Account Manipulation)."
+  severity                   = "High"
+  query                      = file("${path.module}/rules/role_assignment_sub.kql")
+  query_frequency            = "PT15M"
+  query_period               = "PT30M"
+  tactics                    = ["PrivilegeEscalation", "Persistence"]
+
+  event_grouping {
+    aggregation_method = "SingleAlert"
+  }
+}
