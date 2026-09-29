@@ -1,4 +1,5 @@
 AzureActivity
 | where OperationNameValue =~ "MICROSOFT.RESOURCES/SUBSCRIPTIONS/RESOURCEGROUPS/DELETE"
-| where ActivityStatusValue =~ "Success"
-| project TimeGenerated, Caller, CallerIpAddress, ResourceGroup
+| where ActivityStatusValue in~ ("Accept", "Success")
+| summarize arg_min(TimeGenerated, *) by CorrelationId
+| project TimeGenerated, Caller, CallerIpAddress, ResourceGroup, ActivityStatusValue
