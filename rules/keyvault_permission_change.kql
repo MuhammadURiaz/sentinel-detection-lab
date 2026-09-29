@@ -1,0 +1,6 @@
+AzureActivity
+| where ActivityStatusValue =~ "Success"
+| where OperationNameValue =~ "MICROSOFT.KEYVAULT/VAULTS/ACCESSPOLICIES/WRITE"
+    or (OperationNameValue =~ "MICROSOFT.AUTHORIZATION/ROLEASSIGNMENTS/WRITE"
+        and _ResourceId contains "/providers/microsoft.keyvault/vaults/")
+| project TimeGenerated, Caller, CallerIpAddress, OperationNameValue, _ResourceId
