@@ -1,4 +1,5 @@
 AzureActivity
+| where ingestion_time() > ago(15m)
 | where OperationNameValue =~ "MICROSOFT.RESOURCES/SUBSCRIPTIONS/RESOURCEGROUPS/DELETE"
 | where ActivityStatusValue in~ ("Accept", "Success")
 | summarize arg_min(TimeGenerated, *) by CorrelationId
