@@ -1,6 +1,8 @@
+// Vault changes by anyone except the Terraform SP (object ID below), plus RBAC grants on vaults
 AzureActivity
 | where ActivityStatusValue =~ "Success"
-| where OperationNameValue =~ "MICROSOFT.KEYVAULT/VAULTS/ACCESSPOLICIES/WRITE"
+| where (OperationNameValue in~ ("MICROSOFT.KEYVAULT/VAULTS/WRITE", "MICROSOFT.KEYVAULT/VAULTS/ACCESSPOLICIES/WRITE")
+        and Caller !~ "444bf082-5a48-4edc-8395-7fe34699b9b2")
     or (OperationNameValue =~ "MICROSOFT.AUTHORIZATION/ROLEASSIGNMENTS/WRITE"
         and _ResourceId contains "/providers/microsoft.keyvault/vaults/")
 | project TimeGenerated, Caller, CallerIpAddress, OperationNameValue, _ResourceId

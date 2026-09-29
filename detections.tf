@@ -34,7 +34,7 @@ resource "azurerm_sentinel_alert_rule_scheduled" "keyvault_permission_change" {
   name                       = "keyvault-permission-change"
   log_analytics_workspace_id = azurerm_sentinel_log_analytics_workspace_onboarding.sentinel.workspace_id
   display_name               = "Key Vault permission change"
-  description                = "Alerts when Key Vault access is changed via access policy or an RBAC role assignment on a vault. MITRE ATT&CK: Credential Access / Persistence (T1098)."
+  description                = "Alerts on Key Vault changes made outside Terraform (access policies log as VAULTS/WRITE) or RBAC grants on a vault. MITRE ATT&CK: Credential Access / Persistence (T1098)."
   severity                   = "High"
   query                      = file("${path.module}/rules/keyvault_permission_change.kql")
   query_frequency            = "PT15M"
