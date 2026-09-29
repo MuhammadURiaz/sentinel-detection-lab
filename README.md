@@ -54,7 +54,7 @@ my_new_rule = {
 }
 ```
 
-Run `terraform plan` and it should show one rule to add. The module checks the severity is valid before anything reaches Azure, and the key becomes the rule ID (underscores swapped for hyphens).
+Run `terraform plan` and it should show one rule to add. The module checks the severity is valid before anything reaches Azure, and each rule gets a random GUID as its ID, generated fresh on every build.
 
 ## What testing taught me
 
@@ -171,7 +171,7 @@ SecurityIncident
 terraform destroy
 ```
 
-One thing that caught me out: Sentinel reserves a deleted rule's ID for a while. If you destroy and immediately apply again, the rules fail with a 409 "recently deleted" error while everything else builds. Wait a bit and run `terraform apply` again, and Terraform creates only what's missing.
+One thing that caught me out: Sentinel reserves a deleted rule's ID for a while, so my first rebuild after a destroy failed with a 409 "recently deleted" error while everything else built fine. Rule IDs are now random GUIDs created per build, which is what Sentinel uses for its own rules anyway, so a destroy and rebuild never collides. The readable name in the portal comes from `display_name` and doesn't change.
 
 ## Cost
 
@@ -194,7 +194,7 @@ At lab volumes this costs pennies a day. The workspace has a 0.5 GB daily ingest
 ├── detections.tf       Map of rules, fed into the module with for_each
 ├── outputs.tf
 ├── modules/
-│   └── detection-rule/ One scheduled analytics rule, with input validation
+│   └── detection-rule/ One scheduled analytics rule with a GUID ID and input validation
 ├── rules/              One KQL file per detection, named after its map key
 └── docs/images/        Screenshots
 ```
